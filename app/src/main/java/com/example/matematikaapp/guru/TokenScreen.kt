@@ -1,4 +1,4 @@
-package com.example.matematikaapp.siswa
+package com.example.matematikaapp.guru
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,37 +32,38 @@ import com.example.matematikaapp.ui.theme.PrimaryColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TokenScreenSiswa(
-    navController: NavController,
-    identitas: String
+fun TokenInputScreen(
+    navController: NavController
 ) {
-    var tokenSiswa by remember { mutableStateOf("") }
-    var errorToken by remember { mutableStateOf("") }
+    var tokenInput by remember { mutableStateOf("") }
+    var tokenError by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize(),
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Token Soal $identitas",
+            text = "Token Soal",
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 50.dp)
+
         )
         TextField(
-            value = tokenSiswa,
-            onValueChange = {tokenSiswa = it},
+            value = tokenInput,
+            onValueChange = {tokenInput = it},
             singleLine = true,
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                unfocusedLabelColor = PrimaryColor,
                 focusedLabelColor = PrimaryColor,
+                unfocusedLabelColor = PrimaryColor,
                 containerColor = Color.Transparent,
                 textColor = Color.Black
             ),
             modifier = Modifier.padding(start = 50.dp)
         )
-        if(tokenSiswa.isEmpty()) {
+        if(tokenInput.isEmpty()) {
             Text(
-                text = errorToken,
+                text = tokenError,
                 fontSize = 12.sp,
                 color = Color.Red,
                 modifier = Modifier
@@ -72,12 +73,13 @@ fun TokenScreenSiswa(
         }
         Button(
             onClick = {
-                if(tokenSiswa.isEmpty()){
-                    errorToken = "Token belum diisi"
+                if(tokenInput.isEmpty()){
+                    tokenError = "Token belum diisi"
                 }
                 else {
-                    navController.navigate(route = Screen.Canvas.createRoute(identitas, tokenSiswa))
+                    navController.navigate(route = Screen.SoalScreen.createRoute(tokenInput))
                 }
+
             },
             shape = RoundedCornerShape(20.dp),
             modifier = Modifier
@@ -95,15 +97,11 @@ fun TokenScreenSiswa(
                 fontWeight = FontWeight.Bold
             )
         }
-
     }
 }
 
-@Preview (showBackground = true)
+@Preview(showBackground = true)
 @Composable
-fun TokenScreenSiswaPrev() {
-    TokenScreenSiswa(
-        navController = rememberNavController(),
-        identitas = "Jeffrey"
-    )
+fun TokenInputPrev() {
+    TokenInputScreen(navController = rememberNavController())
 }

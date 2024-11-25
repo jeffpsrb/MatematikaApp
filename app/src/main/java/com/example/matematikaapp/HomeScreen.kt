@@ -61,7 +61,7 @@ fun HomeScreen(
             }
             Spacer(modifier = Modifier.height(20.dp))
             Button(
-                onClick = { /*TODO*/ },
+                onClick = {navController.navigate(route = Screen.TokenScreen.route)},
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
                     .width(247.dp)

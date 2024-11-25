@@ -11,5 +11,9 @@ sealed class Screen(val route: String) {
     object Canvas: Screen(route = "canvas_siswa/{identitas}/{token}") {
         fun createRoute(identitas: String, token: String) = "canvas_siswa/$identitas/$token"
     }
+    object TokenScreen: Screen(route = "token_soal")
+    object SoalScreen: Screen(route = "soal_screen/{token_soal}") {
+        fun createRoute(token_soal: String) = "soal_screen/$token_soal"
+    }
 
 }
