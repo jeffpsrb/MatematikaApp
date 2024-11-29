@@ -13,8 +13,10 @@ import com.example.matematikaapp.guru.CalculatorViewModel
 import com.example.matematikaapp.guru.SoalScreen
 import com.example.matematikaapp.guru.TokenInputScreen
 import com.example.matematikaapp.siswa.CanvasSiswa
+import com.example.matematikaapp.siswa.DigitClasifier
 import com.example.matematikaapp.siswa.SiswaScreen
 import com.example.matematikaapp.siswa.TokenScreenSiswa
+import com.example.matematikaapp.siswa.TokenViewModel
 
 @Composable
 fun SetupNavGraph(
@@ -43,7 +45,8 @@ fun SetupNavGraph(
             )
         ) {
             val identitas = it.arguments?.getString("identitas") ?: ""
-            TokenScreenSiswa(navController = navController, identitas = identitas)
+            val tokenViewModel = viewModel<TokenViewModel>()
+            TokenScreenSiswa(navController = navController, identitas = identitas, tokenViewModel)
         }
         composable(
             route = Screen.Canvas.route,
@@ -58,7 +61,8 @@ fun SetupNavGraph(
         ) {
             val identitas = it.arguments?.getString("identitas") ?: ""
             val token = it.arguments?.getString("token") ?: ""
-            CanvasSiswa(navController = navController, identitas = identitas, token = token)
+            val digitClasifier = DigitClasifier(navController.context)
+            CanvasSiswa(navController = navController, identitas = identitas, token = token, digitClasifier = digitClasifier)
         }
         composable(
             route = Screen.TokenScreen.route
