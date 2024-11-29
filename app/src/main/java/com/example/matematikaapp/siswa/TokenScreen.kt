@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.matematikaapp.Screen
@@ -34,10 +36,17 @@ import com.example.matematikaapp.ui.theme.PrimaryColor
 @Composable
 fun TokenScreenSiswa(
     navController: NavController,
-    identitas: String
+    identitas: String,
+    viewModel: TokenViewModel
 ) {
     var tokenSiswa by remember { mutableStateOf("") }
     var errorToken by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadTokenSoal()
+    }
+
+    val tokenSoal = viewModel.tokenSoal.value
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -70,10 +79,23 @@ fun TokenScreenSiswa(
                     .align(Alignment.Start)
             )
         }
+        else if (tokenSiswa != tokenSoal) {
+            Text(
+                text = errorToken,
+                fontSize = 12.sp,
+                color = Color.Red,
+                modifier = Modifier
+                    .padding(start = 50.dp, top = 2.dp)
+                    .align(Alignment.Start)
+            )
+        }
         Button(
             onClick = {
                 if(tokenSiswa.isEmpty()){
                     errorToken = "Token belum diisi"
+                }
+                else if(tokenSiswa != tokenSoal) {
+                    errorToken = "Token Soal Salah"
                 }
                 else {
                     navController.navigate(route = Screen.Canvas.createRoute(identitas, tokenSiswa))
@@ -102,8 +124,10 @@ fun TokenScreenSiswa(
 @Preview (showBackground = true)
 @Composable
 fun TokenScreenSiswaPrev() {
+    val tokenViewModel = viewModel<TokenViewModel>()
     TokenScreenSiswa(
         navController = rememberNavController(),
-        identitas = "Jeffrey"
+        identitas = "Jeffrey",
+        tokenViewModel
     )
 }

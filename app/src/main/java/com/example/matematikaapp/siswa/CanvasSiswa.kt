@@ -1,5 +1,7 @@
 package com.example.matematikaapp.siswa
 
+import android.content.Context
+import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -38,6 +40,23 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.matematikaapp.Screen
 import com.example.matematikaapp.ui.theme.PrimaryColor
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.toArgb
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.opencv.android.Utils
+import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
+import java.io.ByteArrayOutputStream
+import java.io.File.separator
 
 data class Line(
     val start: Offset,
@@ -50,12 +69,33 @@ data class Line(
 fun CanvasSiswa(
     navController: NavController,
     identitas:String,
-    token:String
+    token:String,
+    digitClasifier: DigitClasifier
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val lines = remember { mutableStateListOf<Line>() }
+    var isDataSent by remember { mutableStateOf(false) }
+    var jawaban by remember { mutableStateOf("") }
 
+    LaunchedEffect(Unit) {
+        val bitmap = convertToBitmap(lines)
+        val mat = bitmapToMat(bitmap)
+        val preprocessed =ImageProcessor()
+        val contours =preprocessed.findContours(bitmap)
+        val sortedContours =contours.sortedBy { contour ->
+            Imgproc.boundingRect(contour).x
+        }
+        val result = sortedContours.map { contour ->
+            val react = Imgproc.boundingRect(contour)
+            val digitMat =Mat(mat, react)
+            val preprocessedDigit =preprocessed.preprocessImage(digitMat)
+            digitClasifier.performInference(preprocessedDigit)
+        }
+        jawaban = result.joinToString(separator = "") {it.toString()}
+        Toast.makeText(context, "Predicted digits: $jawaban", Toast.LENGTH_SHORT).show()
+
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -93,7 +133,7 @@ fun CanvasSiswa(
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Text(
-            text = "Jawaban anda : 1",
+            text = "Jawaban anda : $jawaban",
             fontSize = 14.sp,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -151,7 +191,25 @@ fun CanvasSiswa(
                 Text(text = "Clear")
             }
             Button(
-                onClick = { /*TODO*/ },
+                onClick = {
+                    if (!isDataSent) {
+                        val byteArray = convertCanvasToJpg(lines)
+                        if (byteArray != null) {
+                            val imageMedia = "image/jpeg".toMediaTypeOrNull()
+                            val imageRequestBody =byteArray.toRequestBody(imageMedia)
+                            val studentAnswerRequestBody = jawaban.toRequestBody("text/plain".toMediaTypeOrNull())
+                            val imagePart = MultipartBody.Part.createFormData("image", "gambar_${identitas}_${token}_${jawaban}", imageRequestBody)
+                            scope.launch {
+                                submit(imagePart, studentAnswerRequestBody, context)
+                            }
+                            isDataSent = true
+                        } else {
+                            Toast.makeText(context, "Failed", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(context, "Data has been sent already", Toast.LENGTH_SHORT).show()
+                    }
+                },
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
                     .width(95.dp)
@@ -169,13 +227,77 @@ fun CanvasSiswa(
 }
 
 
+fun convertCanvasToJpg(lines: List<Line>): ByteArray {
+    val bitmap = Bitmap.createBitmap(948, 942, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    lines.forEach {line ->
+        canvas.drawLine(
+            line.start.x,
+            line.start.y,
+            line.end.x,
+            line.end.y,
+            Paint().apply {
+                color = line.color.toArgb()
+                strokeWidth = line.strokeWidth.value
+                strokeCap =Paint.Cap.ROUND
+            }
+        )
 
-@Preview (showBackground = true)
-@Composable
-fun CanvasSiswaScreen() {
-    CanvasSiswa(
-        navController = rememberNavController(),
-        identitas = "Tes",
-        token = "1234"
-    )
+    }
+    val output =ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
+    return output.toByteArray()
 }
+
+fun convertToBitmap (lines: List<Line>): Bitmap {
+    val bitmap = Bitmap.createBitmap(948, 942, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    lines.forEach {line ->
+        canvas.drawLine(
+            line.start.x,
+            line.start.y,
+            line.end.x,
+            line.end.y,
+            Paint().apply {
+                color = line.color.toArgb()
+                strokeWidth = line.strokeWidth.value
+                strokeCap =Paint.Cap.ROUND
+            }
+        )
+
+    }
+    return bitmap
+}
+
+fun bitmapToMat(bitmap: Bitmap): Mat {
+    val mat = Mat()
+    Utils.bitmapToMat(bitmap, mat)
+    Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY)
+    return mat
+}
+
+suspend fun submit(image: MultipartBody.Part, studentAnswer:RequestBody, context: Context) {
+    try {
+        val response =ApiClient.apiService.dataJawaban(image, studentAnswer)
+        if (response.isSuccessful) {
+            Toast.makeText(context, "Data berhasil dikirim", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Gagal mengirim data", Toast.LENGTH_SHORT).show()
+        }
+
+    } catch (e: Exception){
+        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+
+//@Preview (showBackground = true)
+//@Composable
+//fun CanvasSiswaScreen() {
+//    CanvasSiswa(
+//        navController = rememberNavController(),
+//        identitas = "Tes",
+//        token = "1234",
+//        jawaban = "2"
+//    )
+//}
