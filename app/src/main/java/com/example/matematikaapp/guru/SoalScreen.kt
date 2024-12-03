@@ -24,6 +24,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.matematikaapp.Screen
 import com.example.matematikaapp.ui.theme.PrimaryColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -548,7 +549,8 @@ fun SoalScreen(
                 // Mendapatkan hasil yang sudah dihitung
                 val calculatedResult = calculatorViewModel?.calculatorState?.result ?: ""
                 // Mengirimkan hasil yang sudah dihitung ke server
-//                submitData(token, input, calculatedResult, context)
+                submitData(token, input, calculatedResult, context)
+
             }
 
 
@@ -576,7 +578,7 @@ fun SoalScreen(
 
                 }
         ) {
-//            navController.navigate(Screen.Token.route)
+            navController.navigate(Screen.TokenScreen.route)
         }
 
         CalculatorButton(
@@ -591,7 +593,7 @@ fun SoalScreen(
 
                 }
         ) {
-//            navController.navigate(route = Screen.Leaderboard.route)
+            navController.navigate(Screen.LeaderboardScreen.route)
 
         }
 
@@ -599,9 +601,26 @@ fun SoalScreen(
     }
 }
 
+suspend fun submitData(token: String, question:String, true_answer:String, context: Context) {
+    try {
+        val response = ApiClient.apiServiceGuru.dataGuru(GuruRequest(token, question, true_answer))
+        if(response.isSuccessful) {
+            val message = response.body()?.message?: "Data Submited"
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "failed", Toast.LENGTH_SHORT).show()
+        }
+    } catch (e: Exception) {
+        Toast.makeText(context, "Network error: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+
 @Preview(showBackground = true)
 @Composable
 fun SoalScreenPrev() {
     val calculatorViewModel = viewModel<CalculatorViewModel>()
     SoalScreen(modifier = Modifier, calculatorViewModel = calculatorViewModel, navController = rememberNavController(), token = "1234")
 }
+
+

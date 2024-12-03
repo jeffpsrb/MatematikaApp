@@ -13,6 +13,7 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 
+
 object ApiClient {
     private const val BASE_URL = "http://localhost:3000/api/role_siswa/"
     val apiService:ApiService by lazy {
@@ -34,7 +35,8 @@ interface ApiService {
     @POST("siswa_answer")
     suspend fun dataJawaban (
         @Part image: MultipartBody.Part,
-        @Part("student_answer") studentAnswer: RequestBody
+        @Part("student_answer") studentAnswer: RequestBody,
+        @Part("is_true") isTrue: RequestBody
     ): Response<ResponseBody>
 
     @GET("token_siswa")

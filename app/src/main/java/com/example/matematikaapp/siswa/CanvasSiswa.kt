@@ -70,32 +70,20 @@ fun CanvasSiswa(
     navController: NavController,
     identitas:String,
     token:String,
-    digitClasifier: DigitClasifier
+    digitClasifier: DigitClasifier,
+    viewModel: JawabanViewModel
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val lines = remember { mutableStateListOf<Line>() }
     var isDataSent by remember { mutableStateOf(false) }
     var jawaban by remember { mutableStateOf("") }
+    var isTrue by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        val bitmap = convertToBitmap(lines)
-        val mat = bitmapToMat(bitmap)
-        val preprocessed =ImageProcessor()
-        val contours =preprocessed.findContours(bitmap)
-        val sortedContours =contours.sortedBy { contour ->
-            Imgproc.boundingRect(contour).x
-        }
-        val result = sortedContours.map { contour ->
-            val react = Imgproc.boundingRect(contour)
-            val digitMat =Mat(mat, react)
-            val preprocessedDigit =preprocessed.preprocessImage(digitMat)
-            digitClasifier.performInference(preprocessedDigit)
-        }
-        jawaban = result.joinToString(separator = "") {it.toString()}
-        Toast.makeText(context, "Predicted digits: $jawaban", Toast.LENGTH_SHORT).show()
-
+        viewModel.loadJawaban()
     }
+    val trueAnswer = viewModel.truAnswer.value
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -192,15 +180,38 @@ fun CanvasSiswa(
             }
             Button(
                 onClick = {
+                    val bitmap = convertToBitmap(lines)
+                    val mat = bitmapToMat(bitmap)
+                    val preprocessed =ImageProcessor()
+                    val contours =preprocessed.findContours(bitmap)
+                    val sortedContours =contours.sortedBy { contour ->
+                        Imgproc.boundingRect(contour).x
+                    }
+                    val result = sortedContours.map { contour ->
+                        val react = Imgproc.boundingRect(contour)
+                        val digitMat =Mat(mat, react)
+                        val preprocessedDigit =preprocessed.preprocessImage(digitMat)
+                        digitClasifier.performInference(preprocessedDigit)
+                    }
+                    jawaban = result.joinToString(separator = "") {it.toString()}
+                    Toast.makeText(context, "Predicted digits: $jawaban", Toast.LENGTH_SHORT).show()
+
+                    if (jawaban == trueAnswer) {
+                        isTrue = "1"
+                    } else {
+                        isTrue = "0"
+                    }
+
                     if (!isDataSent) {
                         val byteArray = convertCanvasToJpg(lines)
                         if (byteArray != null) {
                             val imageMedia = "image/jpeg".toMediaTypeOrNull()
                             val imageRequestBody =byteArray.toRequestBody(imageMedia)
                             val studentAnswerRequestBody = jawaban.toRequestBody("text/plain".toMediaTypeOrNull())
+                            val isTrueRequestBody = isTrue.toRequestBody("text/plain".toMediaTypeOrNull())
                             val imagePart = MultipartBody.Part.createFormData("image", "gambar_${identitas}_${token}_${jawaban}", imageRequestBody)
                             scope.launch {
-                                submit(imagePart, studentAnswerRequestBody, context)
+                                submit(imagePart, studentAnswerRequestBody, isTrueRequestBody, context)
                             }
                             isDataSent = true
                         } else {
@@ -276,9 +287,9 @@ fun bitmapToMat(bitmap: Bitmap): Mat {
     return mat
 }
 
-suspend fun submit(image: MultipartBody.Part, studentAnswer:RequestBody, context: Context) {
+suspend fun submit(image: MultipartBody.Part, studentAnswer:RequestBody, isTrue:RequestBody, context: Context) {
     try {
-        val response =ApiClient.apiService.dataJawaban(image, studentAnswer)
+        val response =ApiClient.apiService.dataJawaban(image, studentAnswer, isTrue)
         if (response.isSuccessful) {
             Toast.makeText(context, "Data berhasil dikirim", Toast.LENGTH_SHORT).show()
         } else {

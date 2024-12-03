@@ -10,10 +10,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.matematikaapp.guru.CalculatorViewModel
+import com.example.matematikaapp.guru.LeaderboardScreen
+import com.example.matematikaapp.guru.LeaderboardViewModel
 import com.example.matematikaapp.guru.SoalScreen
 import com.example.matematikaapp.guru.TokenInputScreen
 import com.example.matematikaapp.siswa.CanvasSiswa
 import com.example.matematikaapp.siswa.DigitClasifier
+import com.example.matematikaapp.siswa.JawabanViewModel
 import com.example.matematikaapp.siswa.SiswaScreen
 import com.example.matematikaapp.siswa.TokenScreenSiswa
 import com.example.matematikaapp.siswa.TokenViewModel
@@ -62,7 +65,8 @@ fun SetupNavGraph(
             val identitas = it.arguments?.getString("identitas") ?: ""
             val token = it.arguments?.getString("token") ?: ""
             val digitClasifier = DigitClasifier(navController.context)
-            CanvasSiswa(navController = navController, identitas = identitas, token = token, digitClasifier = digitClasifier)
+            val jawabanViewModel = viewModel<JawabanViewModel>()
+            CanvasSiswa(navController = navController, identitas = identitas, token = token, digitClasifier = digitClasifier, jawabanViewModel)
         }
         composable(
             route = Screen.TokenScreen.route
@@ -80,6 +84,12 @@ fun SetupNavGraph(
             val token_soal = it.arguments?.getString("token_soal") ?: ""
             val calculatorViewModel = viewModel<CalculatorViewModel>()
             SoalScreen(modifier = Modifier, calculatorViewModel = calculatorViewModel, navController = navController, token = token_soal)
+        }
+        composable(
+            route = Screen.LeaderboardScreen.route
+        ) {
+            val leaderboardViewModel = viewModel<LeaderboardViewModel>()
+            LeaderboardScreen(viewModel = leaderboardViewModel, navController = navController)
         }
 
     }
